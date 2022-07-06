@@ -1,0 +1,4 @@
+常用的缓存算法:
+LRU: least recently(最近) [ˈriːsntli]  used 最近最少使用
+LFU: least frequently(经常) [ˈfriːkwəntli] used 最不经常使用
+FIFO: first in first out 先进先出
