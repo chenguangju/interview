@@ -1,0 +1,30 @@
+redis 中的5中基本数据类型 string set hash zset list 其实指的是redisObject.
+我们在创建一个新的键值对的时候，redis会创建两个redisObject key和value
+其中key总是string类型 value可以是5种类型的一个。
+redisObject 结构如下
+redisObject{
+   //类型
+   type;
+   //编码
+   encoding;
+   //指向底层实现数据结构的指针
+   void *ptr;
+}
+type表示对象类型，就是以上5中。命令 type key 可以查看对应的value对象类型
+REDIS_STRING 字符串
+REDIS_LIST   列表
+REDIS_HASH   哈希
+REDIS_SET    集合
+REDIS_ZSET   有序集合
+
+encoding记录的是对象使用的编码，即对象是由什么数据结构作为底层实现的。 通过object encoding 查看对象编码
+REDIS_ENCODING_INT           long类型整数                       int
+REDIS_ENCODING_EMBSTR        embstr编码的简单动态字符串         embstr
+REDIS_ENCODING_RAW           简单动态字符串                     raw
+REDIS_ENCODING_HT            字典                               hashtable
+REDIS_ENCODING_LINKEDLIST    双端列表                           linkedlist
+REDIS_ENCODING_ZIPLIST       压缩表                             ziplist
+REDIS_ENCODING_INTSET        整数集合                           intset
+REDIS_ENCODING_SKIPLIST      跳表和字典                         skiplist
+
+每一种对象都会至少由两种编码实现，用于优化使用效率
