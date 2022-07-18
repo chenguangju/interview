@@ -1,4 +1,4 @@
-package redis.cache.缓存算法;
+package cache.缓存算法;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

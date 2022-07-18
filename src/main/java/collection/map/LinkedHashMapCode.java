@@ -1,8 +1,6 @@
 package collection.map;
 
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * 1、LinkedHashMap 继承自 HashMap，所以它的底层是基于数组和链表+红黑树，在此基础上LinkedHashMap 增加了一条双向链表，保持其顺序性
@@ -13,7 +11,7 @@ import java.util.Set;
  *    afterNodeAccess配合accessOrder完成按访问顺序排序
  *    afterNodeRemoval提供LinkedHashMap删除节点时，把链表断开
  *    afterNodeInsertion配合removeEldestEntry 可以实现对固定的大小的LinkedHashMap 删除最老的数据即删除头结点
- * 6、以上特性可以通过集成LinkedHashMap实现LRU 缓存算法 {@link redis.cache.缓存算法.LRUCache}
+ * 6、以上特性可以通过集成LinkedHashMap实现LRU 缓存算法 {@link cache.缓存算法.LRUCache}
  *
  */
 public class LinkedHashMapCode {
