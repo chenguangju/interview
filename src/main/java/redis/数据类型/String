@@ -1,0 +1,54 @@
+string类型底层数据结构：
+REDIS_ENCODING_INT  使用long类型实现字符串对象
+REDIS_ENCODING_EMBSTR 使用embstr编码的简单动态字符串实现的字符串对象（redisObject和SDS内存在一起 一次内存分配）
+REDIS_ENCODING_RAW   使用简单动态字符串实现的字符串对象（redisObject和SDS 分开的  两次内存分配）
+
+
+
+string类型，对应的redisObject对象表示为
+type REDIS_STRING
+encoding 有三种情况 int raw embstr
+
+决定encoding的值：
+如果字符串对象保存的是整数值，并且这个整数可以用long类型表示，那么encoding表示为int ，并且prt用于存储long类型数值（此时ptr不是指针）
+如果字符串对象保存的是字符串，并且长度小于等于39， 那么字符串对象将使用 embstr 编码的方式来保存这个字符串值。
+如果字符串对象保存的是一个字符串值， 并且这个字符串值的长度大于 39 字节， 那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串值， 并将对象的编码设置为 raw。
+可以用long double类型表示的浮点数在Redis中也是作为字符串值来保存的。如果我们要保存一个浮点数到字符串对象里面，那么程序会先将这个浮点数转换成字符串值，然后再保存转换所得的字符串值。（raw和embstr）
+
+raw与embstr区别：
+embstr编码是专门用于保存短字符串的一种优化编码方式，这种编码和raw编码一样，都使用redisObject结构和sdshdr结构来表示字符串对象，
+但raw编码会调用两次内存分配函数来分别创建redisObject结构和sdshdr结构，而embstr编码则通过调用一次内存分配函数来分配一块连续的空间，空间中依次包含redisObject和sdshdr两个结构
+
+编码转换：
+int->raw 如果对int类型的对象执行一些命令，导致其对象的编码不再是整数值，而是一个字符串。编码会变为raw.比如对append
+
+embstr->raw redis没有对embstr编码的字符串编写任何修改程序，只要对embstr编码的字符串进行修改命令。都会转为raw格式（embstr只有在创建的时候存在）。比如append命令
+
+命令（官网）：
+APPEND key value 为key追加一个value。  2.0.0
+GET key 获取key的value                 1.0.0
+GETDEL key 获取key的值并且删除key      6.2.0
+GETEX key [EX seconds | PX milliseconds| PERSIST] 获取key的值并设置key的过期时间或者取消过期时间；ex | px设置过期时间。persist 取消过期时间 6.2.0
+GETRANGE key start end 获取value的子串。下标从0开始，下标都包含。-1表示最后一个字符，-3表示从最后开始的第三个  2.4.0
+GETSET key value  6.2.0已经弃用
+LCS key1 key2 [len] [idx] [minmatchlen len] [withmatchlen]  最大公共子序列    7.0.0
+MGET key [key ...]  获取指定key的所有value，如果key不存在则返回nil。（批量操作） 1.0.0
+MSET key value [ key value ...] 批量设置key的value.如果key存在则会替换掉      1.0.1
+MSETNX key value [ key value ...] 原子批量更新，只有所有的key都不存在值时，才能设置成功。有一个key已经存在都会失败  1.0.1
+SETEX key seconds value  设置key的value并指示其超时时间（秒）   2.0.0
+PSETEX key milliseconds value 设置key的value并指示其超时时间（毫秒） 2.6.0
+SET key value [ NX | XX] [GET] [ EX seconds | PX milliseconds ] 设置key的值为value；nx 不存在才设置，xx 存在才设置；get获取旧值；EX|PX设置过期时间。2.6.12
+（SET resource-name anystring NX EX max-lock-time 可以做分布式锁）
+SETNX key value 当key不存在，设置key的值为value（原来用作锁，但是可能发生死锁的情况，可以用set） 1.0.0
+STRLEN key 计算value的长度  2.2.0
+SETRANGE key offset value 重写key的value;offset偏移量。如果key为空会用空格代替 2.2.0
+
+DECR key 对key的值进行减一操作。value必须是整数值 1.0.0
+DECRBY key decrement 对key的值进行减N操作。value必须是整数值 1.0.0
+INCR key  对key的值进行加一操作。value必须是整数值 1.0.0
+INCRBY key increment 对key的值进行加N操作。value必须是整数值 1.0.0
+INCRBYFLOAT key increment  对key的值进行加N操作.value必须可以用long double表示
+
+场景：
+缓存：string 最常用的就是缓存功能，会将一些更新不频繁但是查询频繁的数据缓存起来，以此来减轻 DB 的压力。
+计数器：可以用来计数，通过 incr 操作，如统计网站的访问量、文章访问量等。
