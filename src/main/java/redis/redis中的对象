@@ -9,6 +9,10 @@ redisObject{
    encoding;
    //指向底层实现数据结构的指针
    void *ptr;
+   //引用计数
+   int refcount;
+   //最后一次访问时间戳
+   lru;
 }
 type表示对象类型，就是以上5中。命令 type key 可以查看对应的value对象类型
 REDIS_STRING 字符串
@@ -28,3 +32,11 @@ REDIS_ENCODING_INTSET        整数集合                           intset
 REDIS_ENCODING_SKIPLIST      跳表和字典                         skiplist
 
 每一种对象都会至少由两种编码实现，用于优化使用效率
+
+refcount引用计数，记录对象被引用了几次。用于内存回收。
+新建一个redisObject时refcount初始化为1，有新的程序引用时refcount增加1，对象不被一个程序引用refcount减一。refcount为0时内存被释放。 object refcount key 查看引用数量
+redis 内部维护[0-9999]的整数对象池。所有的redis key创建一个0-9999之间的value都用公用同一个对象。object refcount key会返回2147483647即INT_MAX = 2^31 - 1
+表示此对象都不会被回收。
+
+lru 最后一次访问时间戳
+当redis 内存超过定义的maxmemory时，并且内存回收算法为allkeys-lru或者volatile-lru时，lru字段长的优先淘汰
