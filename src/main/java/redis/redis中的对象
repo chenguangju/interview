@@ -30,6 +30,7 @@ REDIS_ENCODING_LINKEDLIST    双端列表                           linkedlist
 REDIS_ENCODING_ZIPLIST       压缩表                             ziplist
 REDIS_ENCODING_INTSET        整数集合                           intset
 REDIS_ENCODING_SKIPLIST      跳表和字典                         skiplist
+REDIS_ENCODING_QUICKLIST     快速列表                           quicklist（3.2之后）
 
 每一种对象都会至少由两种编码实现，用于优化使用效率
 

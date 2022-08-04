@@ -1,52 +1,72 @@
 list类型底层数据结构：
-REDIS_ENCODING_ZIPLIST  使用ziplist压缩表作为列表对象的底层实现
-REDIS_ENCODING_LINKEDLIST 使用linkedlist链表作为列表对象的底层实现
+REDIS_ENCODING_ZIPLIST  使用ziplist压缩表作为列表对象的底层实现（3.2之前）
+REDIS_ENCODING_LINKEDLIST 使用linkedlist链表作为列表对象的底层实现（3.2之前）
+REDIS_ENCODING_QUICKLIST 使用quicklist作为列表对象的底层实现（3.2之后）
 
 
 
 list类型，对应的redisObject对象表示为
 type REDIS_LIST
-encoding 有两种情况 ziplist linkedlist
+encoding 可以为 ziplist linkedlist（3.2之前）quicklist（3.2之后）
 
-决定encoding的值：
-如果字符串对象保存的是整数值，并且这个整数可以用long类型表示，那么encoding表示为int ，并且prt用于存储long类型数值（此时ptr不是指针）
-如果字符串对象保存的是字符串，并且长度小于等于39， 那么字符串对象将使用 embstr 编码的方式来保存这个字符串值。
-如果字符串对象保存的是一个字符串值， 并且这个字符串值的长度大于 39 字节， 那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串值， 并将对象的编码设置为 raw。
-可以用long double类型表示的浮点数在Redis中也是作为字符串值来保存的。如果我们要保存一个浮点数到字符串对象里面，那么程序会先将这个浮点数转换成字符串值，然后再保存转换所得的字符串值。（raw和embstr）
+决定encoding条件：
+列表对象保存字符串都小于64，数量小于512使用ziplist（3.2之前）
+不满足以上两个条件的使用使用linkedlist（3.2之前）
+list底层实现都是使用quicklist（3.2之后）
 
-raw与embstr区别：
-embstr编码是专门用于保存短字符串的一种优化编码方式，这种编码和raw编码一样，都使用redisObject结构和sdshdr结构来表示字符串对象，
-但raw编码会调用两次内存分配函数来分别创建redisObject结构和sdshdr结构，而embstr编码则通过调用一次内存分配函数来分配一块连续的空间，空间中依次包含redisObject和sdshdr两个结构
+ziplist：https://zhuanlan.zhihu.com/p/157553441
+ziplist 是为了节省内存而设计出来的一种顺序型数据结构
+包含多个节点，每个节点可以是一个字节数组或者整数
+添加或者删除节点可能会发生连锁更新，但是几率并不高
+（原因是每个节点都存储这上一个节点的字节长度prev_entry_len，这个长度保存字段prev_entry_len只能是1字节或者5字节，当前一个节点存储的数据过大或过小，导致本节点的prev_entry_len值
+由1->5或者5->1会重新分配内存 250-253）
+为了节省内存，查询性能并不高（涉及到计算，只能通过遍历查询）
 
-编码转换：
-int->raw 如果对int类型的对象执行一些命令，导致其对象的编码不再是整数值，而是一个字符串。编码会变为raw.比如对append
+linkedlist：
+双向链表内存连续
 
-embstr->raw redis没有对embstr编码的字符串编写任何修改程序，只要对embstr编码的字符串进行修改命令。都会转为raw格式（embstr只有在创建的时候存在）。比如append命令
+quicklist：
+底层用linkedlist+ziplist，其中每个节点都是一个ziplist的双向链表
+
 
 命令（官网）：
-APPEND key value 为key追加一个value。  2.0.0
-GET key 获取key的value                 1.0.0
-GETDEL key 获取key的值并且删除key      6.2.0
-GETEX key [EX seconds | PX milliseconds| PERSIST] 获取key的值并设置key的过期时间或者取消过期时间；ex | px设置过期时间。persist 取消过期时间 6.2.0
-GETRANGE key start end 获取value的子串。下标从0开始，下标都包含。-1表示最后一个字符，-3表示从最后开始的第三个  2.4.0
-GETSET key value  6.2.0已经弃用
-LCS key1 key2 [len] [idx] [minmatchlen len] [withmatchlen]  最大公共子序列    7.0.0
-MGET key [key ...]  获取指定key的所有value，如果key不存在则返回nil。（批量操作） 1.0.0
-MSET key value [ key value ...] 批量设置key的value.如果key存在则会替换掉      1.0.1
-MSETNX key value [ key value ...] 原子批量更新，只有所有的key都不存在值时，才能设置成功。有一个key已经存在都会失败  1.0.1
-SETEX key seconds value  设置key的value并指示其超时时间（秒）   2.0.0
-PSETEX key milliseconds value 设置key的value并指示其超时时间（毫秒） 2.6.0
-SET key value [ NX | XX] [GET] [ EX seconds | PX milliseconds ] 设置key的值为value；nx 不存在才设置，xx 存在才设置；get获取旧值；EX|PX设置过期时间。2.6.12
-（SET resource-name anystring NX EX max-lock-time 可以做分布式锁）
-SETNX key value 当key不存在，设置key的值为value（原来用作锁，但是可能发生死锁的情况，可以用set） 1.0.0
-STRLEN key 计算value的长度  2.2.0
-SETRANGE key offset value 重写key的value;offset偏移量。如果key为空会用空格代替 2.2.0
+LPUSH key element [element ...] 1.0.0， 2.4.0可批量
+为key在头部添加元素，不存在key时创建列表，可批量
 
-DECR key 对key的值进行减一操作。value必须是整数值 1.0.0
-DECRBY key decrement 对key的值进行减N操作。value必须是整数值 1.0.0
-INCR key  对key的值进行加一操作。value必须是整数值 1.0.0
-INCRBY key increment 对key的值进行加N操作。value必须是整数值 1.0.0
-INCRBYFLOAT key increment  对key的值进行加N操作.value必须可以用long double表示
+LPUSHX key element [element ...] 2.2.0，4.0.0可批量
+当key存在且为列表时，从头部添加（批量添加）元素
+
+RPUSH key element [element ...] 1.0.0， 2.4.0可批量
+为key在尾部添加元素，不存在key时创建列表，可批量
+
+RPUSHX key element [element ...] 2.2.0，4.0.0可批量
+当key存在且为列表时，从尾部添加（批量添加）元素
+
+LINSERT key BEFORE | AFTER pivot element  2.2.0
+在key的某个元素（pivot）之前或之后插入一个值（element）；列表中有多个元素怎么办？只插入一个，第一个遇到的
+
+LPOP key [count] 1.0.0 ，6.2.0添加count参数
+删除并返回key的头结点。count有值时，删除多个并返回
+
+BLPOP key [key ...] timeout 2.0.0 ， 6.0.0添加timeout参数，表示双精度
+删除并返回key的头结点。支持监听多个key.如果key对应的列表为空则阻塞。先阻塞先解除阻塞
+
+RPOP key [count] 1.0.0 ，6.2.0添加count参数
+删除并返回key的尾结点。count有值时，删除多个并返回
+
+RLPOP key [key ...] timeout 2.0.0 ， 6.0.0添加timeout参数，表示双精度
+删除并返回key的尾结点。支持监听多个key.如果key对应的列表为空则阻塞。先阻塞先解除阻塞
+
+LMOVE source destination LEFT | RIGHT LEFT | RIGHT  6.2.0
+从源（source）到目标（destination）移动数据，前一个LEFT|RIGHT 表示从目标的头或尾移出，后一个LEFT|RIGHT 表示从头或尾插入
+
+BLMOVE source destination LEFT | RIGHT LEFT | RIGHT timeout  6.2.0
+和LMOVE类似。在source为空时会阻塞，等待timeout时间。
+
+LREM key count element
+删除key的几个(count)等于element的元素。count>0从头开始删，count<0从尾开始删，count=0删除所有
+
+
 
 场景：
 缓存：string 最常用的就是缓存功能，会将一些更新不频繁但是查询频繁的数据缓存起来，以此来减轻 DB 的压力。
