@@ -1,0 +1,93 @@
+Redis 哈希是字符串字段和字符串值之间的映射，因此它们是表示对象的完美数据类型
+虽然哈希主要用于表示对象，但它们能够存储许多元素，因此您也可以将哈希用于许多其他任务。
+每个散列最多可以存储 2^32 - 1 个字段值对（超过 40 亿个）
+
+
+list类型底层数据结构：
+REDIS_ENCODING_ZIPLIST  使用ziplist压缩表作为哈希对象的底层实现
+REDIS_ENCODING_HT    使用hashtable字典作为哈希对象的底层实现
+
+
+hash类型，对应的redisObject对象表示为
+type REDIS_HASH
+encoding 可以为 ziplist hashtable
+
+决定encoding条件：
+列表对象保存字符串都小于64，数量小于512使用ziplist（3.2之前）
+不满足以上两个条件的使用使用linkedlist（3.2之前）
+list底层实现都是使用quicklist（3.2之后）
+
+ziplist：https://zhuanlan.zhihu.com/p/157553441
+ziplist 是为了节省内存而设计出来的一种顺序型数据结构
+包含多个节点，每个节点可以是一个字节数组或者整数
+添加或者删除节点可能会发生连锁更新，但是几率并不高
+（原因是每个节点都存储这上一个节点的字节长度prev_entry_len，这个长度保存字段prev_entry_len只能是1字节或者5字节，当前一个节点存储的数据过大或过小，导致本节点的prev_entry_len值
+由1->5或者5->1会重新分配内存 250-253）
+为了节省内存，查询性能并不高（涉及到计算，只能通过遍历查询）
+
+linkedlist：
+双向链表内存连续
+
+quicklist：
+底层用linkedlist+ziplist，其中每个节点都是一个ziplist的双向链表
+
+
+命令（官网）：
+HDEL key field [field ...]   2.0.0，2.4.0支持多字段
+从key对应的hash中删除字段，支持多个字段删除
+
+HEXISTS key field  2.0.0
+判断key对应的hash中是否存在某个字段
+
+HGET key field   2.0.0
+获取key对应的hash中某个字段的值
+
+HGETALL key  2.0.0
+返回key对应的hash所有的字段和字段值
+
+HINCRBY key field increment   2.0.0
+对key对应的hash的某个字段值进行加几（increment）操作。负数表示减 字段值必须是整数值
+
+HINCRBYFLOAT key field increment 2.6.0
+对key对应的hash的某个字段值进行加数值（increment）操作。负数表示减 字段值必须可以用浮点数表示
+
+HKEYS key 2.0.0
+返回key对应的hash所有的字段名称
+
+HLEN key 2.0.0
+返回key对应的hash字段数量
+
+HMGET key field [field ...] 2.0.0
+返回key对应的hash字段的值，支持多个值返回，字段不存在返回nil
+
+HSET key field value [ field value ...] 2.0.0， 4.0.0支持批量
+设置key对应的hash字段的值，可设置多个
+
+HSETNX key field value  2.0.0
+设置key对应的hash字段的值，只有不存在是才设置成功
+
+HSTRLEN key field  3.2.0
+返回key对应的hash字段的值的长度
+
+HVALS key 2.0.0
+返回key对应的hash所有的value
+
+HSCAN key cursor [MATCH pattern] [COUNT count] 2.8.0
+遍历整个key,cursor游标从0开始，已0结束。MATCH pattern 匹配项 ，COUNT count返回数量，默认是10
+这个命令如果hash底层是ziplist时返回的是所有的数据，不受count控制
+返回结果是游标和一个field value列表
+即使有MATCH pattern条件也会遍历所有，然后再匹配返回，可能返回空但是游标还没结束
+
+
+HRANDFIELD key [ count [WITHVALUES]] 6.2.0
+如果不带参数则是获取随机的field
+如果count是正数则返回不重复的field，返回count个，并不是随机，按一定顺序返回，
+如果count是负数则允许返回重复的field，返回count个随机的数据
+
+
+
+
+
+
+场景：
+存储对象信息

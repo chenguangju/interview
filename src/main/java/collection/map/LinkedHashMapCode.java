@@ -1,5 +1,6 @@
 package collection.map;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 /**
@@ -17,7 +18,7 @@ import java.util.LinkedHashMap;
 public class LinkedHashMapCode {
 
     public static void main(String[] args) {
-        LinkedHashMap<Integer,Integer> map=new LinkedHashMap<>(10,0.75f,true);
+        /*LinkedHashMap<Integer,Integer> map=new LinkedHashMap<>(10,0.75f,true);
         map.put(11,22);
         map.put(22,33);
         map.put(33,44);
@@ -27,6 +28,9 @@ public class LinkedHashMapCode {
         map.get(22);
         map.forEach((k,v)->{
             System.out.println(k+""+v);
-        });
+        });*/
+
+        HashMap<Object, Object> map = new HashMap<>(12);
+        map.put("1","2");
     }
 }

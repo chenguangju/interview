@@ -1,0 +1,57 @@
+Hashmap实现原理及扩容机制详解
+https://blog.csdn.net/lkforce/article/details/89521318?spm=1001.2101.3001.6650.1&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-89521318-blog-123798887.pc_relevant_multi_platform_whitelistv3&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-1-89521318-blog-123798887.pc_relevant_multi_platform_whitelistv3&utm_relevant_index=2
+1、核心参数
+默认初始容量 16
+
+最大容量 2^30
+
+默认加载因子 0.75
+乘以数组容量得到的值，用来表示元素个数达到多少时，需要扩容；为什么设置 0.75 这个值呢，简单来说就是时间和空间的权衡。
+若小于0.75如0.5，则数组长度达到一半大小就需要扩容，空间使用率大大降低，若大于0.75如0.8，则会增大hash冲突的概率，影响查询效率。
+
+链表转红黑树阈值 8
+当链表长度大于8，并且数组容量大于64才会转化为红黑树，容量小于64会先扩容
+
+红黑树退化链表阈值 6
+红黑树的节点个数到6个时退化为链表
+
+最小转换红黑树的数组容量 64
+
+int threshold;扩容阈值
+
+final float loadFactor; 加载因子
+
+int size;map中k-v对总数量
+
+2、 put过程
+3、 get过程
+
+4、 默认构造参数和有参构造函数？
+在创建hashmap对象时并不初始化数组容量，在put时进行扩容初始化。
+当为默认构造时，设置loadFactor为默认加载因子，首次put进行一次扩容，初始容量为16，扩容阈值threshold=16*0.75=12
+有参构造函数时（设置初始容量构造函数），设置loadFactor为默认加载因子，设置threshold为设置的设置容量的下一个是2^n数值，
+然后首次put进行一次扩容，设置初始容量为threshold，并重新计算threshold=2^n*0.75
+
+5、创建hashmap时设置初始容量为10，当put第100个元素时扩容了几次，没有hash碰撞情况
+在进行初始化时进行一次扩容，实际初始容量为16，能放下100个元素，容量最少是128，从16到128需要扩容3次算上首次为4次
+128的扩容阈值是128*0.75即96，也就是说在put到96个元素的时候已经扩容了4次，容量到达128但是在put97个元素的时候再次扩容
+到达256个容量。也即扩容5次
+
+6、java 8散列函数为什么要hash和自己的右移16位异或？(h = key.hashCode()) ^ (h >>> 16);
+这是一个扰动函数，用于优化散列效果，使得散列更随机，减少hash碰撞
+
+7、为什么不使用hashcode作为数组下标？
+虽然hashcode是一个int值但是其范围是[-2147483648, 2147483647]有近40亿长度，数组不能初始化如此长度，内存也放不下。必须使用数组长度取模来分散到数组
+取模可以用%或者与运算，与运算需要是2的n次幂，与运算更高效。这也是数组长度是2的n次幂的一个原因
+
+8、hashmap如果寻找2的倍数最小值的？
+static final int tableSizeFor(int cap) {
+    int n = cap - 1;
+    n |= n >>> 1;
+    n |= n >>> 2;
+    n |= n >>> 4;
+    n |= n >>> 8;
+    n |= n >>> 16;
+    return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
+}
+

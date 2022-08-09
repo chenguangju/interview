@@ -1,2 +1,6 @@
 1、redis 键过期策略
 2、redis 内存淘汰策略
+3、reids hash数据类型的rehash过程,渐进式rehash?
+4、redis hash与java hashmap
+redis 数组+单项链表，为了速度采用头插法（单线程不存在链表循环）。
+hashmap 数组+单项链表+红黑树。为了解决头插法在并发下链表循环问题，采用尾插法。

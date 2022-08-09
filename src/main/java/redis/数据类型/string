@@ -1,3 +1,6 @@
+字符串是最基本的 Redis 值。Redis 字符串是二进制安全的，这意味着 Redis 字符串可以包含任何类型的数据，例如 JPEG 图像或序列化的 Ruby 对象。
+字符串值的最大长度为 512 兆字节
+
 string类型底层数据结构：
 REDIS_ENCODING_INT  使用long类型实现字符串对象
 REDIS_ENCODING_EMBSTR 使用embstr编码的简单动态字符串实现的字符串对象（redisObject和SDS内存在一起 一次内存分配）

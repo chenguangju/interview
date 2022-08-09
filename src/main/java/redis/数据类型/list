@@ -1,3 +1,7 @@
+Redis 列表是简单的字符串列表，按插入顺序排序。可以将元素添加到 Redis 列表中，将新元素推送到列表的头部（左侧）或尾部（右侧
+列表的最大长度为 2^32 - 1 个元素（4294967295，每个列表超过 40 亿个元素）。
+
+
 list类型底层数据结构：
 REDIS_ENCODING_ZIPLIST  使用ziplist压缩表作为列表对象的底层实现（3.2之前）
 REDIS_ENCODING_LINKEDLIST 使用linkedlist链表作为列表对象的底层实现（3.2之前）
@@ -54,17 +58,36 @@ BLPOP key [key ...] timeout 2.0.0 ， 6.0.0添加timeout参数，表示双精度
 RPOP key [count] 1.0.0 ，6.2.0添加count参数
 删除并返回key的尾结点。count有值时，删除多个并返回
 
-RLPOP key [key ...] timeout 2.0.0 ， 6.0.0添加timeout参数，表示双精度
+BRPOP key [key ...] timeout 2.0.0 ， 6.0.0添加timeout参数，表示双精度
 删除并返回key的尾结点。支持监听多个key.如果key对应的列表为空则阻塞。先阻塞先解除阻塞
 
 LMOVE source destination LEFT | RIGHT LEFT | RIGHT  6.2.0
 从源（source）到目标（destination）移动数据，前一个LEFT|RIGHT 表示从目标的头或尾移出，后一个LEFT|RIGHT 表示从头或尾插入
+可靠队列，循环列表；
 
 BLMOVE source destination LEFT | RIGHT LEFT | RIGHT timeout  6.2.0
 和LMOVE类似。在source为空时会阻塞，等待timeout时间。
+可靠队列，循环列表
 
 LREM key count element
 删除key的几个(count)等于element的元素。count>0从头开始删，count<0从尾开始删，count=0删除所有
+
+LINDEX key index 1.0.0
+根据下标index返回key的元素，下标从0开始，-1表示最后一个元素
+
+LSET key index element 1.0.0
+设置key的下标index为element，下标从0开始，-1表示最后一个元素
+
+LRANGE key start stop 1.0.0
+返回列表的值，下标从0开始，-1表示末尾。包前包后（和java不一样）如果start大于list的大小返回空；如果end大于list大小会返回最后一个元素
+
+LTRIM key start stop  1.0.0
+剪裁key对应的列表，下标从0开始，-1表示末尾。如果start大于list的大小或者start>end返回空，列表会被清空。如果end大于list大小会返回最后一个元素
+
+LLEN key  1.0.0
+返回list长度
+
+
 
 
 
