@@ -30,7 +30,9 @@ public class LinkedHashMapCode {
             System.out.println(k+""+v);
         });*/
 
-        HashMap<Object, Object> map = new HashMap<>(12);
+        HashMap<String, String> map = new HashMap<>(4, 0.8f);
         map.put("1","2");
+        map.put("2","3");
+        map.put("3","4");
     }
 }
