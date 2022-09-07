@@ -1,0 +1,6 @@
+1、springboot自动装配的原理
+我们在用springboot是用SpringBootApplication注解，这个注解包含EnableAutoConfiguration注解，自动配置加载的关键
+Spring Boot 在启动时扫描项目所依赖的 jar 包，寻找包含spring.factories 文件的 jar 包。
+根据 spring.factories 配置加载 AutoConfigure 类。
+根据 @Conditional 等条件注解 的条件，进行自动配置并将 Bean 注入 Spring IoC 中。
+期间还涉及到配置类去重、过滤等操作

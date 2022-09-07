@@ -1,0 +1,11 @@
+1、gateway 与 zuul的区别
+zuul 基于servlet;是阻塞式的，不支持长链接
+gateway 用webflux实现，可以支持异步，也可以支持长链接
+
+2、gateway 做过什么配置
+配置routes,每个路由包含id,uri,order,filters,predicates
+id配置的是服务名
+uri配置的是断言后要访问的路径，lb://服务名
+order配置的是优先级，越低优先级越高
+filters配置的是过滤器，配置的参数是StripPrefix=2
+predicates配置的是判断路由是否命中，Path=/api/disaster/**

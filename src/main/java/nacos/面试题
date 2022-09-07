@@ -1,0 +1,22 @@
+1、nacos做配置共享
+shared-configs:
+shared-configs[1]:
+  data-id: pearl-custom.yml
+  group: PEARL_GROUP
+  refresh: true
+
+配置:
+nacos地址，
+namespace:不同环境 dev test
+group:不同的组织，dev 下有应急和监测组
+dataId:文件的唯一标识
+通过${prefix}-${spring.profiles.active}.${file-extension}
+spring.cloud.nacos.config.prefix 默认为spring.application.name
+spring.cloud.nacos.config.file-extension 可以是yml或者properties
+
+spring.import.config
+spring.config.import[0]=optional:nacos:host.properties
+
+2、nacos注册方式
+sdk  NamingService 注册 namingService.registerInstance(serviceName, group, instance);
+open api 可以通过nacos对外提供的api接口注册

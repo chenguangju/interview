@@ -1,0 +1,30 @@
+1、线程的状态
+新建-》就绪-》运行-》阻塞-》结束
+new——》ready_>running->block->dead
+其中的block又分为三种：
+Timed Waiting ->调用带有超时时间的api,sleep(100),wait(100)
+Waiting       ->调用不带时间的api,sleep(),wait()
+Blocked		  ->正在等待获取锁，进入
+2、如果一个线程运行时出现异常会怎么样
+如果这个异常没有被捕获的话，这个线程就停止执行了。
+另外重要的一点是：如果这个线程持有某个某个对象的监视器，那么这个对象监视器会被立即释放
+3、创建线程有几种方式
+实现Thread线程类
+通过实现Runnable接口->和Thread配合使用
+通过实现Callable接口配合Future->配合线程池使用
+4、Thread的sleep方法和对象的wait方法有什么区别
+都会使线程阻塞
+但是sleep会继续持有对象锁，让出cpu让其他线程去执行。线程回到就绪状态等待cpu调度
+wait是放弃对象锁，等其他对象调用notifyAll并且获取到锁时，进入就绪状态等待cpu调度
+5、什么是ThreadLocal,怎么用的？
+是线程本地变量，每个线程独有一个，线程安全。
+场景：多线程需要一个全局变量用于业务。避免传参麻烦
+6、ThreadLocal原理/ThreadLocal是如何保证线程独享的
+Thread中都有一个ThreadlocalMap,map里是table,里面是一个一个的Entry,Entry的key是当前的ThreadLocal,value是set进去的对象
+当调用set的时候，会创建当前线程的ThreadLocalMap,这是线程独有的
+7、ThreadLocal是如何产生内存泄漏的
+一个Thread的ThreadLocalMap可以存在多个Entry(一个线程绑定多个ThreadLocal,一个ThreadLocal对应一个Entry),如果不手动调用Remove方法
+Entry的value并不会被回收
+8、什么是InheritableThreadLocal
+InheritableThreadLocal 类，是 ThreadLocal 类的子类。ThreadLocal 中每个线程拥有它自己的值，与 ThreadLocal 不同的是，
+InheritableThreadLocal 允许一个线程以及该线程创建的所有子线程都可以访问它保存的值

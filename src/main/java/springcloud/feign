@@ -1,0 +1,10 @@
+1、feign底层实现原理
+底层是通过jdk的动态代理实现的
+我们用feign，在springboot 启动类上加上EnableFeignClients ,并在需要远程访问的接口上加上FeignClient注解。
+当feign启动时发现启动类上有EnableFeignClients注解，则会扫描所有的带有FeignClient的接口，并为其生成代理类
+所有的fegin请求都会走代理逻辑。在代理逻辑中会根据@ReuqestMapping等注解来构造你要请求的服务地址
+最对服务地址发起请求、解析响应
+
+2、jdk动态代理和cglib动态代理的区别
+jdk只能对接口进行代理，也即你的代理目标类必须实现接口才能被代理。生成的代理类继承Proxy 实现接口
+Cglib没有限制，生成的代理类和目标类是继承关系
