@@ -2,7 +2,18 @@
 惰性删除：当访问一个key是才判断是否过期，过期了就删除。节省cpu 对内存不友好
 定期删除：定期的在设置了过期键的key中，随机选择一部分，检查是否过期。过期则删除
 2、redis 内存淘汰策略
-当redis内存不足时，会触发内存淘汰策略，
+当redis内存不足时，会触发内存淘汰策略，分3类8中
+第一类：对设置了过期时间的key进行操作
+volatile-lru：当内存不足以容纳新写入数据时，从设置了过期时间的key中使用LRU（最近最少使用）算法进行淘汰；
+volatile-lfu：4.0版本新增，当内存不足以容纳新写入数据时，在过期的key中，使用LFU算法进行删除key。
+volatile-random：当内存不足以容纳新写入数据时，从设置了过期时间的key中，随机淘汰数据；
+volatile-ttl：当内存不足以容纳新写入数据时，在设置了过期时间的key中，根据过期时间进行淘汰，越早过期的优先被淘汰；
+第二类：对所有key进行操作
+allkeys-lru：当内存不足以容纳新写入数据时，从所有key中使用LRU（最近最少使用）算法进行淘汰
+allkeys-lfu：4.0版本新增，当内存不足以容纳新写入数据时，从所有key中使用LFU算法进行淘汰
+allkeys-random：当内存不足以容纳新写入数据时，从所有key中随机淘汰数据。
+第三类：内存不足时直接拒绝
+noeviction：默认策略，当内存不足以容纳新写入数据时，新写入操作会报错。
 3、reids hash数据类型的rehash过程,渐进式rehash?
     当以下条件中的任意一个被满足时， 程序会自动开始对哈希表执行扩展操作：
     1、服务器目前没有在执行 BGSAVE 命令或者 BGREWRITEAOF 命令， 并且哈希表的负载因子大于等于 1 ；
@@ -52,3 +63,75 @@
     hashmap 数组+单项链表+红黑树。为了解决头插法在并发下链表循环问题，采用尾插法。
     redis 扩容是渐进式的。hashmap的扩容是一次性的
     redis 可以收缩。hashmap不可以
+
+
+5、说说redis 线程模型
+redis是基于IO多路复用实现的单线程模型。它内部有一个文件事件处理器，他是单线程处理读写、执行命令。
+文件事件处理器：多个socket、IO多路复用程序、文件事件分派器、文件事件处理器
+// 入口函数
+void aeMain(EventLoop eventLoop) {
+    while(true) {
+    	// 文件事件处理器
+    	aeProcessEvents(eventLoop);
+    }
+}
+void aeProcessEvents() {
+	// 调用 epoll_wait 函数，等待I/O事件 （IO 多路复用程序）
+    int numevents = aeApiPoll(timeval);
+    for(int i=0; i< numevents; i++) {
+    	// 从队列中取出对应的事件
+    	fileEvent = getFromEventQueue(i);
+    	// 处理文件事件	(文件事件分派器)
+    	processFileEvent(fileEvent);
+    }
+
+}
+
+void processFileEvent() {
+	if event == '读事件' {
+		// 读处理器
+		processReadFile();
+	}
+	if event == '写事件' {
+		// 写处理器
+		processWriteFile();
+	}
+}
+
+6.0 多线程部分只是用来处理网络数据的读写和协议解析，执行命令仍然是单线程顺序执行
+多线程步骤：
+阶段一：服务端和客户端建立Socket连接，并分配处理线程
+首先，主线程负责接收建立连接请求。当有客户端请求和实例建立Socket连接时，主线程会创建和客户端的连接，并把 Socket 放入全局等待队列中。
+紧接着，主线程通过轮询方法把Socket连接分配给IO线程。
+
+阶段二：IO线程读取并解析请求
+主线程一旦把Socket分配给IO线程，就会进入阻塞状态，等待IO线程完成客户端请求读取和解析。因为有多个IO线程在并行处理，所以，这个过程很快就可以完成。
+
+阶段三：主线程执行请求操作
+等到IO线程解析完请求，主线程还是会以单线程的方式执行这些命令操作
+
+阶段四：IO线程回写Socket和主线程清空全局队列
+当主线程执行完请求操作后，会把需要返回的结果写入缓冲区，然后，主线程会阻塞等待IO线程，把这些结果回写到Socket中，并返回给客户端。
+和IO线程读取和解析请求一样，IO线程回写Socket时，也是有多个线程在并发执行，所以回写Socket的速度也很快。等到IO线程回写Socket完毕，主线程会清空全局队列，等待客户端的后续请求。
+
+6、redis持久化方式
+RDB：全量持久化，指定时间间隔内对redis内存数据全量写入磁盘,二进制文件。
+fork一个子进程去执行。快照的时候，不会把已过期的key持久化到RDB;bgsave
+当父进程对其中一个页面的数据进行修改时，会将被共享的页面复制一份分离出来，然后对这个复制的页面进行修改。写时复制
+适合做备份，但是有数据丢失的风险
+save 900 1
+save 300 10
+save 60 10000
+AOF：增量持久化，以日志的形式记录服务器处理的增删改操作
+appendonly yes
+# appendfsync always    每次操作都会立即写入aof文件中
+appendfsync everysec	每秒持久化一次(默认配置)
+# appendfsync no		不主动进行同步操作，默认30s一次
+最大可能保证数据不丢失
+
+7.redis实现分布式锁要考虑那些问题
+获得锁                 set key value ex 1000 nx  可以实现获取锁，锁超时自动释放
+释放锁
+超时的自动释放锁       set key value ex 1000 nx  可以实现获取锁，锁超时自动释放
+未获得到锁的等待机制
+锁超时的处理

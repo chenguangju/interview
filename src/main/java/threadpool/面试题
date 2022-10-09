@@ -1,0 +1,53 @@
+1、线程池的核心参数有哪些
+核心线程数：
+池中会保留的最多线程数
+最大线程数
+池中最大的线程数
+线程存活时间
+线程存活时间单位
+当除核心线程数空闲的时候，线程存活时间
+阻塞队列
+存储任务的队列
+拒绝策略
+当工作队列满后，并且线程数达到最大线程数时，如何处理提交的任务
+线程工厂
+用于生产线程
+
+2、线程池工作原理
+当我们提交一个任务到线程池中，线程池会创建一个线程执行我们的任务，如果提交的任务超过核心线程数大小，则会把任务放到工作队列中
+去等待线程执行，如果工作队列满后，继续提交任务，则会继续创建线程去执行提交的任务，如果创建的线程达到最大线程数，则会通过拒绝策略
+去处理提交的任务。当队列中的任务处理完，线程空闲的时候，处核心线程外，都会在线程存活时间到到达时被销毁
+
+3、工作队列有哪些
+ArrayBlockingQueue：是一个基于数组结构的有界阻塞队列，此队列按FIFO（先进先出）原则对元素进行排序。
+LinkedBlockingQueue：一个基于链表结构的阻塞队列，此队列按FIFO排序元素，吞吐量通常要高于ArrayBlockingQueue，静态工厂方法Executors.newFixedThreadPool()使用了这个队列。
+SynchronousQueue：一个不存储元素的阻塞队列。每个插入操作必须等到另一个线程调用移除操作，否则插入操作一直处于阻塞状态，吞吐量通常要高于LinkedBlockingQueue，静态工厂方法Executors.newCachedThreadPool使用了这个列。
+PriorityBlockingQueue：一个具有优先级的无限阻塞队列。
+
+
+4、拒绝策略有哪些
+AbortPolicy：不处理，直接抛出异常。默认
+CallerRunsPolicy：若线程池还没关闭，调用当前所在线程来运行任务，r.run()执行。
+DiscardOldestPolicy：LRU策略，丢弃队列里最近最久不使用的一个任务，并执行当前任务。
+DiscardPolicy：不处理，丢弃掉，不抛出异常。
+Discard：丢弃 dɪˈskɑːd
+Policy：策略 ˈpɒləsi
+
+5、关闭线程池
+shutdown()：不会立即终止线程池，而是要等所有任务缓存队列中的任务都执行完后才终止，但再也不会接受新的任务
+shutdownNow()：立即终止线程池，并尝试打断正在执行的任务，并且清空任务缓存队列，返回尚未执行的任务
+
+6、线程池的状态
+5中状态
+RUNNING:运行状态，能够接收新任务以及对已添加的任务进行处理。
+SHUTDOWN：线程池处于SHUTDOWN状态时，不接收新任务，但能处理已添加的任务；shutdown()
+STOP:线程池处于STOP状态时，不接收新任务，不处理已添加的任务，并且会中断正在处理的任务；shutdownNow()
+TIDYING：当处于SHUTDOWN或STOP时，线程数为0情况下为TIDYING
+TERMINATED：结束状态TIDYING状态调用terminated()接口，会由TIDYING-》TERMINATED
+
+7、java 中的线程池
+newCachedThreadPool 创建一个可缓存线程池程
+newFixedThreadPool 创建一个定长线程池
+newScheduledThreadPool 创建一个定长线程池
+newSingleThreadExecutor 创建一个单线程化的线程池
+
