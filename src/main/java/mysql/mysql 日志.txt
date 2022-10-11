@@ -1,0 +1,62 @@
+mysql日志：
+redo log 重做日志，属于InnoDB存储引擎独有的，物理日志记录了在哪个数据页上做了什么修改；用于崩溃回复
+比如 MySQL 实例挂了或宕机了，重启时，InnoDB存储引擎会使用redo log恢复数据，保证数据的持久性与完整性。
+如果崩溃了重启后：
+会加载redo log ，碰到哪个数据页修改了，就去磁盘中查数据也到内存中，然后做修改。
+也不是完全能修改，redo log 和binlog是两阶段提交，先写redolog perpare 在写binlog 最后写redolog commit
+当有redolog commit则直接修改内存页
+当有redolog perpare并且有binlog commit 则写
+当只有redolog perpare不做操作
+
+redo log buffer可以写多个操作（一个事务多个更新情况）-》page cache->磁盘
+
+InnoDB 存储引擎为 redo log 的刷盘策略提供了 innodb_flush_log_at_trx_commit 参数，它支持三种策略：
+0 ：设置为 0 的时候，表示每次事务提交时不进行刷盘操作，通过定时任务触发
+1 ：设置为 1 的时候，表示每次事务提交时都将进行刷盘操作（默认值）
+2 ：设置为 2 的时候，表示每次事务提交时都只把 redo log buffer 内容写入 page cache
+innodb_flush_log_at_trx_commit 参数默认为 1 ，也就是说当事务提交时会调用 fsync 对 redo log 进行刷盘
+另外，InnoDB 存储引擎有一个后台线程，每隔1 秒，就会把 redo log buffer 中的内容写到文件系统缓存（page cache），然后调用 fsync 刷盘。
+
+
+binlog 是逻辑日志，记录内容是语句的原始逻辑，类似于“给 ID=2 这一行的 c 字段加 1”，属于MySQL Server 层
+
+binlog cache（一个事务必须一次写入不能拆分）-》page cache->磁盘
+write，指的就是指把日志写入到文件系统的 page cache，并没有把数据持久化到磁盘，所以速度比较快
+fsync，才是将数据持久化到磁盘的操作。一般情况下，我们认为 fsync 才占磁盘的 IOPS。
+write 和 fsync 的时机，是由参数 sync_binlog 控制的：
+sync_binlog=0 的时候，表示每次提交事务都只 write，不 fsync；
+sync_binlog=1 的时候，表示每次提交事务都会执行 fsync；
+sync_binlog=N(N>1) 的时候，表示每次提交事务都 write，但累积 N 个事务后才 fsync。
+
+mysql binlog日志 的三种格式 ： statement row mixed
+
+binlog=statement格式：当binlog=statement时，binlog记录的是SQL本身的语句
+binlog=row格式： 如果我们把binlog设置为row格式的时候，binlog记录的不是sql原语句，而是替换成了两个event：Table_map和Delete_rows，真实记录了要修改的项
+比如修改了，会记录修改的id.删除操作也会记录删除的id,不会发生主备不一致的情况
+binlog=mixed格式：如果MySQL认为会引起主备不一致，它就会使用row格式记录到binlog；如果MySQL认为不会引起主备不一致，它就会使用statement格式记录到binlog。
+
+
+两个作用：
+1、数据复制，只从是通过binlog日志进行的
+2、数据备份和恢复：
+
+可以在数据备份之前或者之后执行flush logs重新生成一个binlog日志用来记录备份之后的所有增删改操作
+备份：mysql -u root -p (要备份的库) -> 要备份的地址如：mysqldump -u root -p nacos >D:\test.sql
+恢复：登录mysql;use 要恢复的数据库 source 你的备份文件；如 use nacos ;source D:\test.sql
+
+
+undo log
+回滚日志
+场景
+1、回滚数据,当事务执行到一半的时候，由于某些原因事务失败了。则会通过回滚日志，回滚事务
+2、mvcc，每一个数据的更改都会生成一个新的版本，通过新的版本可以找到所有以前的版本数据
+
+回滚日志记录的内容：
+你要是在缓存页里执行了一个insert语句，那么此时你在undo log日志里，对这个操作记录的回滚日志就必须是有一个主键和一个对应的delete操作，要能让你把这次insert操作给回退。
+insert undo log 最重要的是主键id
+ 你要是执行的是delete语句，那么起码你要把你删除的那条数据记录下来，如果要回滚，就 应该执行一个insert操作把那条数据插入回去。
+ delete ,会记录一个insert语句，是未删除前数据的样子
+你要是执行的是update语句，那么起码你要把你更新之前的那个值记录下来，回滚的时候重新update一下，把你之前更新前的旧值给他更新回去。
+update，会有一个反向update语句，更新条件，和原始的要更新的字段值
+
+

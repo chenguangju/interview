@@ -8,18 +8,24 @@ HandlerExecutionChain（处理器执行链包含多个拦截器和一个处理�
 
 
 3、详细的步骤
-1、spring boot启动的时候会扫描所有的spring bean ,把含有Controller或RequestMapping注解的类和方法，把请求地址，请求方式封装成RequestMappingInfo
-把请求方法封装成HandlerMethod,放到RequestMappingHandlerMapping中；把所有的拦截器添加到AbstractHandlerMapping中供后续使用
-2、当一个请求到达DispatcherServlet，会根据Request的请求Url和请求方式到RequestMappingHandlerMapping查找对应的Handler,并根据Url查找对应的拦截器
+
+
+1、spring boot启动的时候会扫描所有的spring bean ,对含有Controller或RequestMapping注解的类进行处理，把类中的方法配置的RequestMapping属性提取出来其中
+请求地址、请求方式封装成RequestMappingInfo；并把方法封装成HandlerMethod,放到AbstractHandlerMethodMapping的内部类MappingRegistry中；
+把所有的拦截器添加到AbstractHandlerMapping中供后续使用
+2、当一个请求到达DispatcherServlet，会根据Request的请求Url和请求方式到HandlerMapping查找对应的Handler,并根据Url查找对应的拦截器
 封装成处理器执行链HandlerExecutionChain并返回
 3、spring mvc内置了多种HandlerAdapter用于处理不同的Handler.接下来就是通过Handler类型去所有的HandlerAdapter中查找能处理HandlerMethod这种Handler的
-HandlerAdapter，找到RequestMappingHandlerAdapter返回
+HandlerAdapter，找到AbstractHandlerMethodAdapter返回
 4、执行所有的HandlerExecutionChain的前置拦截器
 5、通过HandlerAdapter去执行Handler.如
-    通过RequestMappingHandlerAdapter执行handler:
+    通过AbstractHandlerMethodAdapter执行handler:
     1、解析参数。根据参数类型获取能解析参数的解析器。程序内置了30多种参数解析器
     比如RequestParamMethodArgumentResolver用于解析参数中标注@RequestParam,PathVariableMethodArgumentResolver用于解析参数中标注@PathVariable等
     2、反射执行controller中的方法，返回ModelAndView
     3、对返回的结果应用返回参数解析器，内置有15种
     比如RequestResponseBodyMethodProcessor用于解析类中或方法中标注了@ResponseBody注解的返回值，并直接把对象转换成字符串，写会Response
 6、执行所有的HandlerExecutionChain的后置拦截器
+
+对带有@Controller或@RequestMapping注解的类特殊处理
+org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping#isHandler

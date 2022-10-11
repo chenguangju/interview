@@ -1,15 +1,20 @@
 1、线程池的核心参数有哪些
 核心线程数：
 池中会保留的最多线程数
+
 最大线程数
 池中最大的线程数
+
 线程存活时间
 线程存活时间单位
 当除核心线程数空闲的时候，线程存活时间
+
 阻塞队列
 存储任务的队列
+
 拒绝策略
 当工作队列满后，并且线程数达到最大线程数时，如何处理提交的任务
+
 线程工厂
 用于生产线程
 
@@ -42,8 +47,8 @@ shutdownNow()：立即终止线程池，并尝试打断正在执行的任务，�
 RUNNING:运行状态，能够接收新任务以及对已添加的任务进行处理。
 SHUTDOWN：线程池处于SHUTDOWN状态时，不接收新任务，但能处理已添加的任务；shutdown()
 STOP:线程池处于STOP状态时，不接收新任务，不处理已添加的任务，并且会中断正在处理的任务；shutdownNow()
-TIDYING：当处于SHUTDOWN或STOP时，线程数为0情况下为TIDYING
-TERMINATED：结束状态TIDYING状态调用terminated()接口，会由TIDYING-》TERMINATED
+TIDYING：当处于SHUTDOWN或STOP时，线程数为0情况下为TIDYING ˈtaɪdiɪŋ
+TERMINATED：结束状态；TIDYING状态调用terminated()接口，会由TIDYING-》TERMINATED ˈtɜːmɪneɪt 结束
 
 7、java 中的线程池
 newCachedThreadPool 创建一个可缓存线程池程
